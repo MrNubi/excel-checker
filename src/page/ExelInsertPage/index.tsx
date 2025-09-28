@@ -1,3 +1,4 @@
+// src/pages/excelInsertPage/index.tsx
 import React, { useMemo, useState } from "react";
 import type { CheckUnknownsResponse, UnknownRow } from "../../types/excel";
 import { formatValue } from "./utils/format";
@@ -186,8 +187,12 @@ export default function ExcelInsertPage() {
                     {cmp.onlyInA.slice(0, 200).map((r, i) => (
                       <tr key={i}>
                         <td><code>{i + 2}</code></td>
-                        <td>{r["사업자번호"]}</td><td>{r["상호"]}</td><td>{r["MID"]}</td>
-                        <td>{r["GID"]}</td><td>{r["MID명"]}</td><td>{r["지불수단"]}</td>
+                        <td>{formatValue(r["사업자번호"])}</td>
+                        <td>{formatValue(r["상호"])}</td>
+                        <td>{formatValue(r["MID"])}</td>
+                        <td>{formatValue(r["GID"])}</td>
+                        <td>{formatValue(r["MID명"])}</td>
+                        <td>{formatValue(r["지불수단"])}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -211,8 +216,12 @@ export default function ExcelInsertPage() {
                     {cmp.onlyInB.slice(0, 200).map((r, i) => (
                       <tr key={i}>
                         <td><code>{i + 2}</code></td>
-                        <td>{r["사업자번호"]}</td><td>{r["상호"]}</td><td>{r["MID"]}</td>
-                        <td>{r["GID"]}</td><td>{r["MID명"]}</td><td>{r["지불수단"]}</td>
+                        <td>{formatValue(r["사업자번호"])}</td>
+                        <td>{formatValue(r["상호"])}</td>
+                        <td>{formatValue(r["MID"])}</td>
+                        <td>{formatValue(r["GID"])}</td>
+                        <td>{formatValue(r["MID명"])}</td>
+                        <td>{formatValue(r["지불수단"])}</td>
                       </tr>
                     ))}
                   </tbody>
