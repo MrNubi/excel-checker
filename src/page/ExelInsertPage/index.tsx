@@ -3,7 +3,9 @@ import styled, { css } from 'styled-components';
 import { checkUnknowns } from '../../api/uploadExel';
 import type { CheckUnknownsResponse, UnknownRow } from '../../types/excel';
 import { formatValue } from "./utils/format";
-//ddd
+import { validateClientSide } from "./utils/xlsx";
+
+
 const Container = styled.div`
   max-width: 1000px; margin: 0 auto; padding: 32px 16px;
 `;
@@ -35,7 +37,6 @@ const btnBase = css<{$ghost?: boolean}>`
 const Button = styled.button<{$ghost?: boolean}>`${btnBase}`;
 const LabelButton = styled.label<{$ghost?: boolean}>`${btnBase}`;
 
-// ⚠️ 여기 수정: 제네릭 인라인 대신 별도 타입 + transient prop 사용
 type BadgeIntent = "ok" | "warn" | "default";
 interface BadgeProps { $intent?: BadgeIntent; }
 
@@ -87,21 +88,32 @@ export default function ExcelInsertPage() {
   const [result, setResult] = useState<CheckUnknownsResponse | null>(null);
   const [status, setStatus] = useState("");
 
-  async function onUpload() {
-    if (!file) { setError("먼저 파일을 선택하세요."); return; }
-    try {
-      setIsLoading(true); setError(null); setResult(null); setStatus("업로드/검사 중...");
-      const data = await checkUnknowns(file);
-      setResult(data);
-      setStatus(data.unknown_rows && data.unknown_rows > 0
-        ? `Unknown 값 발견: ${data.unknown_rows}개 행`
-        : "모든 행 정상");
-    } catch (e: any) {
-      setError(e?.message || "알 수 없는 오류"); setStatus("");
-    } finally {
-      setIsLoading(false);
-    }
+async function onUpload() {
+  if (!file) { setError("먼저 파일을 선택하세요."); return; }
+  try {
+    setIsLoading(true); setError(null); setResult(null); setStatus("로컬 검증 중...");
+
+    // 1) 브라우저에서 즉시 검증
+    const local = await validateClientSide(file);
+    setResult(local);
+    setStatus(local.unknown_rows && local.unknown_rows > 0
+      ? `Unknown 값 발견: ${local.unknown_rows}개 행`
+      : "로컬 검증 통과");
+
+    // 2) (선택) 통과 시 서버 재검증/저장 호출
+    // if (local.ok) {
+    //   setStatus("서버 재검증 중...");
+    //   const remote = await checkUnknowns(file); // 동일 엔드포인트 또는 finalize API
+    //   setResult(remote);
+    //   setStatus(remote.ok ? "최종 검증 통과" : `서버에서 ${remote.unknown_rows}개 행 이슈`);
+    // }
+
+  } catch (e: any) {
+    setError(e?.message || "알 수 없는 오류"); setStatus("");
+  } finally {
+    setIsLoading(false);
   }
+}
 
   const errors: UnknownRow[] = useMemo(() => result?.errors ?? [], [result]);
 
