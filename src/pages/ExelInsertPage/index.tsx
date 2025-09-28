@@ -1,5 +1,5 @@
-// src/pages/excelInsertPage/index.tsx
 import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { CheckUnknownsResponse, UnknownRow } from "../../types/excel";
 import { formatValue } from "./utils/format";
 import {
@@ -16,7 +16,16 @@ import {
   TableWrap, Table, Code,
 } from "./styles";
 
+// 상태 셀렉트 라벨
+const ACTION_LABEL: Record<"pass"|"add"|"blacklist", string> = {
+  pass: "패스",
+  add: "기업추가",
+  blacklist: "블랙리스트",
+};
+
 export default function ExcelInsertPage() {
+  const navigate = useNavigate();
+
   // 파일: A=비교 대상, B=원본
   const [file, setFile] = useState<File | null>(null);
   const [refFile, setRefFile] = useState<File | null>(null);
@@ -30,10 +39,38 @@ export default function ExcelInsertPage() {
   const [cmp, setCmp] = useState<CompareResult | null>(null);               // Step2
   const errors: UnknownRow[] = useMemo(() => result?.errors ?? [], [result]);
 
+  // 각 행 상태 선택 저장 (키: compositeKey, 값: 'pass'|'add'|'blacklist')
+  const [rowActions, setRowActions] = useState<Record<string, "pass"|"add"|"blacklist">>({});
+
+  // composite key 생성 (xlsx util의 toCompositeKey를 써도 되지만,
+  // 이 페이지에서는 서버 의존 없이 키를 만들기 위해 동일 로직을 간단 재구현)
+  const keyOf = (r: Record<string, any>) => {
+    const norm = (v: any) => (v == null ? "" : String(v).replace(/\u00A0/g, " ").trim());
+    const normBiz = (v: any) => norm(v).replace(/[^0-9]/g, "");
+    const lower = (v: any) => norm(v).toLowerCase();
+    const payCanon = (v: any) => {
+      const base = lower(v);
+      if (base === "신용카드" || base === "카드") return "card";
+      if (base === "해외카드") return "card_intl";
+      if (base === "계좌이체") return "transfer";
+      if (base === "가상계좌") return "virtual";
+      return base;
+    };
+    return [
+      normBiz(r["사업자번호"]),
+      lower(r["상호"]),
+      norm(r["MID"]),
+      norm(r["GID"]),
+      lower(r["MID명"]),
+      payCanon(r["지불수단"]),
+    ].join("|");
+  };
+
   async function onValidate() {
     if (!file) { setError("먼저 비교 대상 파일을 선택하세요."); return; }
     try {
       setIsLoading(true); setError(null); setResult(null); setCmp(null);
+      setRowActions({});
       setStatus("로컬 검증 중... (금액은 음수 허용, 하이픈 '-' 불가)");
       const local = await validateClientSide(file);
       setResult(local);
@@ -53,6 +90,7 @@ export default function ExcelInsertPage() {
       const r = await compareClientSide(file, refFile);
       setCmp(r);
       setStatus("비교 완료");
+      setRowActions({}); // 비교할 때마다 초기화
     } catch (e: any) {
       setError(e?.message || "비교 중 오류");
       setStatus("");
@@ -62,7 +100,26 @@ export default function ExcelInsertPage() {
   function onReset() {
     setFile(null); setRefFile(null);
     setResult(null); setCmp(null);
+    setRowActions({});
     setError(null); setStatus("");
+  }
+
+  // 제출: 블랙리스트 제외, 기업추가만 새 페이지로 이동
+  function onSubmitSelected() {
+    if (!cmp) return;
+
+    const onlyA = cmp.onlyInA ?? [];
+    const notBlacklisted = onlyA.filter(r => (rowActions[keyOf(r)] ?? "pass") !== "blacklist");
+    const toAdd = onlyA.filter(r => (rowActions[keyOf(r)] ?? "pass") === "add");
+
+    // 현재 화면에서 블랙리스트 제거
+    setCmp({
+      ...cmp,
+      onlyInA: notBlacklisted,
+    });
+
+    // 기업추가 선택된 항목을 새 페이지로 전달
+    navigate("/excel/new", { state: { rows: toAdd } });
   }
 
   return (
@@ -160,7 +217,7 @@ export default function ExcelInsertPage() {
         </Card>
       )}
 
-      {/* Step 2 결과 */}
+      {/* Step 2 결과 (B만 있는 행 섹션 제거) */}
       {cmp && (
         <Card style={{ marginTop: 24 }}>
           <Row>
@@ -168,10 +225,10 @@ export default function ExcelInsertPage() {
             <Badge>원본(B) 행: {cmp.totalB}</Badge>
             <Badge $intent="ok">일치: {cmp.matches.length}</Badge>
             <Badge $intent={cmp.onlyInA.length ? "warn" : "ok"}>A만 있음: {cmp.onlyInA.length}</Badge>
-            <Badge $intent={cmp.onlyInB.length ? "warn" : "ok"}>B만 있음: {cmp.onlyInB.length}</Badge>
             <Timestamp>{new Date().toLocaleString()}</Timestamp>
           </Row>
 
+          {/* A에만 있는 행 + 상태 선택 */}
           {cmp.onlyInA.length > 0 && (
             <>
               <H1 style={{ fontSize: 16, marginTop: 16 }}>A에만 있는 행(원본과 키 불일치)</H1>
@@ -179,54 +236,49 @@ export default function ExcelInsertPage() {
                 <Table>
                   <thead>
                     <tr>
+                      <th>상태</th>
                       <th>#(추정)</th>
                       <th>사업자번호</th><th>상호</th><th>MID</th><th>GID</th><th>MID명</th><th>지불수단</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {cmp.onlyInA.slice(0, 200).map((r, i) => (
-                      <tr key={i}>
-                        <td><code>{i + 2}</code></td>
-                        <td>{formatValue(r["사업자번호"])}</td>
-                        <td>{formatValue(r["상호"])}</td>
-                        <td>{formatValue(r["MID"])}</td>
-                        <td>{formatValue(r["GID"])}</td>
-                        <td>{formatValue(r["MID명"])}</td>
-                        <td>{formatValue(r["지불수단"])}</td>
-                      </tr>
-                    ))}
+                    {cmp.onlyInA.slice(0, 500).map((r, i) => {
+                      const key = keyOf(r);
+                      const value = rowActions[key] ?? "pass";
+                      return (
+                        <tr key={key}>
+                          <td>
+                            <select
+                              value={value}
+                              onChange={(e) =>
+                                setRowActions((prev) => ({ ...prev, [key]: e.target.value as "pass"|"add"|"blacklist" }))
+                              }
+                              style={{ fontSize: 12, padding: "4px 6px" }}
+                            >
+                              <option value="blacklist">{ACTION_LABEL.blacklist}</option>
+                              <option value="add">{ACTION_LABEL.add}</option>
+                              <option value="pass">{ACTION_LABEL.pass}</option>
+                            </select>
+                          </td>
+                          <td><code>{i + 2}</code></td>
+                          <td>{formatValue(r["사업자번호"])}</td>
+                          <td>{formatValue(r["상호"])}</td>
+                          <td>{formatValue(r["MID"])}</td>
+                          <td>{formatValue(r["GID"])}</td>
+                          <td>{formatValue(r["MID명"])}</td>
+                          <td>{formatValue(r["지불수단"])}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </Table>
               </TableWrap>
-            </>
-          )}
 
-          {cmp.onlyInB.length > 0 && (
-            <>
-              <H1 style={{ fontSize: 16, marginTop: 16 }}>B(원본)에만 있는 행(A와 키 불일치)</H1>
-              <TableWrap>
-                <Table>
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>사업자번호</th><th>상호</th><th>MID</th><th>GID</th><th>MID명</th><th>지불수단</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cmp.onlyInB.slice(0, 200).map((r, i) => (
-                      <tr key={i}>
-                        <td><code>{i + 2}</code></td>
-                        <td>{formatValue(r["사업자번호"])}</td>
-                        <td>{formatValue(r["상호"])}</td>
-                        <td>{formatValue(r["MID"])}</td>
-                        <td>{formatValue(r["GID"])}</td>
-                        <td>{formatValue(r["MID명"])}</td>
-                        <td>{formatValue(r["지불수단"])}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </TableWrap>
+              <Row style={{ justifyContent: "flex-end", marginTop: 12 }}>
+                <Button type="button" onClick={onSubmitSelected}>
+                  선택 제출
+                </Button>
+              </Row>
             </>
           )}
         </Card>
