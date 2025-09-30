@@ -7,3 +7,4 @@ const data = await resp.json();
 if (!resp.ok) throw new Error(data?.error || '업로드 실패');
 return data;
 }
+//s
