@@ -224,7 +224,7 @@ export default function ExcelInsertPage() {
             <Badge>대상(A) 행: {cmp.totalA}</Badge>
             <Badge>원본(B) 행: {cmp.totalB}</Badge>
             <Badge $intent="ok">일치: {cmp.matches.length}</Badge>
-            <Badge $intent={cmp.onlyInA.length ? "warn" : "ok"}>A만 있음: {cmp.onlyInA.length}</Badge>
+            <Badge $intent={cmp.onlyInA.length ? "warn" : "ok"}>검사 결과: {cmp.onlyInA.length}</Badge>
             <Timestamp>{new Date().toLocaleString()}</Timestamp>
           </Row>
 
