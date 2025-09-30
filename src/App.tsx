@@ -5,6 +5,7 @@ import NewCompaniesPage from "./pages/NewCompaniesPage";
 
 export default function App() {
   //need splash
+  //need ALl
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/excel" replace />} />
