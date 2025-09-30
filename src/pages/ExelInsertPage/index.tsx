@@ -7,7 +7,7 @@ import {
   compareClientSide,
   type CompareResult,
 } from "./utils/xlsx";
-
+//수정
 // 스타일 분리본
 import {
   Container, H1, P, Card, Row,
