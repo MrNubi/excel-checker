@@ -15,7 +15,7 @@ import {
   Badge, Timestamp, AlertOk,
   TableWrap, Table, Code,
 } from "./styles";
-
+// ExcelTest
 // 상태 셀렉트 라벨
 const ACTION_LABEL: Record<"pass"|"add"|"blacklist", string> = {
   pass: "패스",
