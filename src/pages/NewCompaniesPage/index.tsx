@@ -39,7 +39,7 @@ export default function NewCompaniesPage() {
 
     // TODO: 서버에 전송
     // fetch('/company/bulk-add', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
-
+    //Todo:기업추가제출에대한커밋테스트, 사실 이 내용은 의미없음
     console.log("[기업추가 제출]", payload);
     alert(`기업추가 ${payload.length}건 제출 완료(콘솔 확인).`);
     navigate("/excel");
