@@ -7,7 +7,7 @@ import {
   compareClientSide,
   type CompareResult,
 } from "./utils/xlsx";
-
+//수정
 // 스타일 분리본
 import {
   Container, H1, P, Card, Row,
@@ -15,7 +15,7 @@ import {
   Badge, Timestamp, AlertOk,
   TableWrap, Table, Code,
 } from "./styles";
-
+// ExcelTest
 // 상태 셀렉트 라벨
 const ACTION_LABEL: Record<"pass"|"add"|"blacklist", string> = {
   pass: "패스",
@@ -224,7 +224,7 @@ export default function ExcelInsertPage() {
             <Badge>대상(A) 행: {cmp.totalA}</Badge>
             <Badge>원본(B) 행: {cmp.totalB}</Badge>
             <Badge $intent="ok">일치: {cmp.matches.length}</Badge>
-            <Badge $intent={cmp.onlyInA.length ? "warn" : "ok"}>A만 있음: {cmp.onlyInA.length}</Badge>
+            <Badge $intent={cmp.onlyInA.length ? "warn" : "ok"}>검사 결과: {cmp.onlyInA.length}</Badge>
             <Timestamp>{new Date().toLocaleString()}</Timestamp>
           </Row>
 
