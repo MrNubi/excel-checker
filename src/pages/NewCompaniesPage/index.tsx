@@ -40,14 +40,14 @@ export default function NewCompaniesPage() {
     // TODO: 서버에 전송
     // fetch('/company/bulk-add', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
 
-    console.log("[기업추가 제출]", payload);
+
     alert(`기업추가 ${payload.length}건 제출 완료(콘솔 확인).`);
     navigate("/excel");
   }
 
   return (
     <Container>
-      <H1>기업 추가 대상 검토</H1>
+      <H1>추가 대상 검토</H1>
       <P>아래 항목에 대해 우측 <b>구분</b>을 선택한 뒤, 제출하세요.</P>
 
       <Card>
